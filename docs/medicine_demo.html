@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hybrid GraphRAG 복약 안전 정보 검색</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #657085;
+      --line: #d9e1ec;
+      --brand: #0e6f68;
+      --blue: #2f5f98;
+      --warn: #9b5b10;
+      --bad: #a73b3b;
+      --soft: #eaf4f2;
+      --shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Pretendard", "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.94);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .bar {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.22rem;
+      line-height: 1.25;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--warn);
+    }
+
+    .dot.ready { background: var(--brand); }
+    .dot.error { background: var(--bad); }
+
+    main {
+      max-width: 1380px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 22px;
+      display: grid;
+      grid-template-columns: minmax(320px, 410px) minmax(0, 1fr);
+      gap: 20px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .controls {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+      align-self: start;
+    }
+
+    .drop {
+      border: 1px dashed #9aa8bc;
+      border-radius: 8px;
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+      background: #fbfdff;
+    }
+
+    input[type="file"] { width: 100%; color: var(--muted); }
+
+    .preview {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      object-fit: contain;
+      background: #eef3f8;
+      display: none;
+    }
+
+    .field { display: grid; gap: 8px; }
+
+    label {
+      font-size: 0.86rem;
+      font-weight: 750;
+      color: #2f3a4f;
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: 1fr 72px;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="range"] { width: 100%; }
+
+    .value {
+      text-align: right;
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .segmented button {
+      border: 0;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .segmented button.active {
+      background: var(--soft);
+      color: var(--brand);
+      font-weight: 800;
+    }
+
+    .primary, .secondary {
+      border: 0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .primary { background: var(--brand); color: white; }
+    .secondary { background: #e8eef7; color: #24476f; }
+    .primary:disabled, .secondary:disabled { opacity: 0.55; cursor: wait; }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .workspace { display: grid; gap: 20px; }
+
+    .summary {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fbfdff;
+      min-height: 74px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.02rem;
+    }
+
+    .columns {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.95fr);
+      gap: 20px;
+    }
+
+    .card {
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .candidate {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .candidate-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .candidate-title {
+      font-weight: 850;
+      line-height: 1.35;
+    }
+
+    .rank {
+      color: white;
+      background: var(--blue);
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      flex: 0 0 auto;
+    }
+
+    .bars { display: grid; gap: 5px; }
+
+    .barline {
+      display: grid;
+      grid-template-columns: 52px 1fr 46px;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .track {
+      height: 7px;
+      background: #e6ecf4;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .fill { height: 100%; width: 0%; background: var(--brand); }
+
+    .rules {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pill {
+      border: 1px solid #e3c079;
+      background: #fff7e7;
+      color: #7a4a0c;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 0.76rem;
+      font-weight: 750;
+    }
+
+    .markdown, .chat-log {
+      white-space: pre-wrap;
+      line-height: 1.65;
+      font-size: 0.94rem;
+    }
+
+    .ocr-box, .chat-log {
+      max-height: 240px;
+      overflow: auto;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: #334155;
+      background: #fbfdff;
+    }
+
+    .chat-log {
+      min-height: 170px;
+      max-height: 320px;
+    }
+
+    .chat-turn {
+      border-bottom: 1px solid #e8edf5;
+      padding: 8px 0;
+    }
+
+    .chat-turn:last-child { border-bottom: 0; }
+    .chat-role { font-weight: 850; color: var(--brand); }
+
+    .chat-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: end;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 76px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      color: var(--ink);
+    }
+
+    .empty {
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      background: #fbfdff;
+    }
+
+    .error { color: var(--bad); font-weight: 750; }
+
+    @media (max-width: 980px) {
+      main, .columns { grid-template-columns: 1fr; }
+      .score-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .status { white-space: normal; justify-content: flex-end; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <h1>Hybrid GraphRAG 복약 안전 정보 검색</h1>
+      <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">서버 확인 중</span></div>
+    </div>
+  </header>
+
+  <main>
+    <aside class="panel controls">
+      <div class="drop">
+        <strong>약 포장 이미지</strong>
+        <input id="imageInput" type="file" accept="image/*">
+        <img id="preview" class="preview" alt="업로드 이미지 미리보기">
+      </div>
+
+      <div class="field">
+        <label>Hybrid 모드</label>
+        <div class="segmented">
+          <button id="fixedMode" class="active" type="button">고정 alpha</button>
+          <button id="dynamicMode" type="button">Dynamic</button>
+        </div>
+      </div>
+
+      <div class="field" id="alphaField">
+        <label>OCR 가중치 alpha</label>
+        <div class="range-row">
+          <input id="alpha" type="range" min="0" max="1" step="0.05" value="0.8">
+          <div id="alphaValue" class="value">0.80</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>안전 카드 길이</label>
+        <div class="range-row">
+          <input id="cardTokens" type="range" min="120" max="700" step="20" value="420">
+          <div id="cardTokensValue" class="value">420</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>후보 개수</label>
+        <select id="topK">
+          <option value="5" selected>Top 5</option>
+          <option value="3">Top 3</option>
+          <option value="10">Top 10</option>
+        </select>
+      </div>
+
+      <button id="runButton" class="primary" type="button" disabled>검색 실행</button>
+      <div class="meta" id="configText">데이터셋과 모델 상태를 불러오는 중입니다.</div>
+    </aside>
+
+    <section class="workspace">
+      <div class="panel summary">
+        <div class="score-grid">
+          <div class="metric"><span>선택 alpha</span><strong id="metricAlpha">-</strong></div>
+          <div class="metric"><span>OCR confidence</span><strong id="metricConf">-</strong></div>
+          <div class="metric"><span>OCR lines</span><strong id="metricLines">-</strong></div>
+          <div class="metric"><span>LLM tokens</span><strong id="metricTokens">-</strong></div>
+          <div class="metric"><span>처리 상태</span><strong id="metricState">대기</strong></div>
+        </div>
+      </div>
+
+      <div class="columns">
+        <div class="panel card">
+          <h2>Hybrid 후보</h2>
+          <div id="candidateList" class="empty">검색 결과가 여기에 표시됩니다.</div>
+        </div>
+
+        <div class="panel card">
+          <h2>EXAONE 안전 카드</h2>
+          <div id="safetyCard" class="empty">검색 후 생성됩니다.</div>
+        </div>
+      </div>
+
+      <div class="columns">
+        <div class="panel card">
+          <h2>OCR 텍스트</h2>
+          <div id="ocrText" class="ocr-box">-</div>
+        </div>
+
+        <div class="panel card">
+          <h2>후속 질문</h2>
+          <div id="chatLog" class="chat-log">검색 후 질문할 수 있습니다.</div>
+          <div class="chat-row">
+            <textarea id="chatInput" placeholder="예: 이 약은 어떤 DUR 경고가 연결돼 있어?"></textarea>
+            <button id="chatButton" class="secondary" type="button" disabled>질문</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const apiBase = location.protocol === 'file:' ? 'http://127.0.0.1:8008' : location.origin;
+    const imageInput = document.getElementById('imageInput');
+    const preview = document.getElementById('preview');
+    const runButton = document.getElementById('runButton');
+    const chatButton = document.getElementById('chatButton');
+    const alpha = document.getElementById('alpha');
+    const alphaValue = document.getElementById('alphaValue');
+    const cardTokens = document.getElementById('cardTokens');
+    const cardTokensValue = document.getElementById('cardTokensValue');
+    const fixedMode = document.getElementById('fixedMode');
+    const dynamicMode = document.getElementById('dynamicMode');
+    const alphaField = document.getElementById('alphaField');
+    let imageData = '';
+    let mode = 'fixed';
+    let lastResult = null;
+    let chatHistory = [];
+
+    function setStatus(kind, text) {
+      const dot = document.getElementById('statusDot');
+      dot.className = `dot ${kind || ''}`;
+      document.getElementById('statusText').textContent = text;
+    }
+
+    function setMetric(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    function pct(value) {
+      return `${Math.max(0, Math.min(100, value * 100)).toFixed(0)}%`;
+    }
+
+    function score(value) {
+      return Number(value || 0).toFixed(3);
+    }
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[ch]));
+    }
+
+    async function loadStatus() {
+      try {
+        const response = await fetch(`${apiBase}/api/status`);
+        const data = await response.json();
+        setStatus('ready', `서버 연결됨 · ${data.products}품목 · EXAONE ${data.exaone_provider}/${data.exaone_device || 'auto'}`);
+        document.getElementById('configText').textContent =
+          `CLIP ${data.clip_model} · EasyOCR ${data.ocr_gpu ? 'GPU' : 'CPU'} · ${data.exaone_model}`;
+      } catch (error) {
+        setStatus('error', '서버 연결 실패');
+        document.getElementById('configText').textContent = 'cmd에서 scripts\\run_prototype_server.cmd를 실행하세요.';
+      }
+    }
+
+    alpha.addEventListener('input', () => {
+      alphaValue.textContent = Number(alpha.value).toFixed(2);
+    });
+
+    cardTokens.addEventListener('input', () => {
+      cardTokensValue.textContent = cardTokens.value;
+    });
+
+    fixedMode.addEventListener('click', () => {
+      mode = 'fixed';
+      fixedMode.classList.add('active');
+      dynamicMode.classList.remove('active');
+      alphaField.style.display = 'grid';
+    });
+
+    dynamicMode.addEventListener('click', () => {
+      mode = 'dynamic';
+      dynamicMode.classList.add('active');
+      fixedMode.classList.remove('active');
+      alphaField.style.display = 'none';
+    });
+
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        imageData = reader.result;
+        preview.src = imageData;
+        preview.style.display = 'block';
+        runButton.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function renderCandidates(candidates) {
+      if (!candidates || candidates.length === 0) {
+        document.getElementById('candidateList').className = 'empty';
+        document.getElementById('candidateList').textContent = '후보가 없습니다.';
+        return;
+      }
+
+      document.getElementById('candidateList').className = '';
+      document.getElementById('candidateList').innerHTML = candidates.map(item => {
+        const rules = (item.rules || []).map(rule =>
+          `<span class="pill">${escapeHtml(rule.dur_type || 'DUR')} ${escapeHtml(rule.warning || '')}</span>`
+        ).join('');
+        return `
+          <article class="candidate">
+            <div class="candidate-head">
+              <div>
+                <div class="candidate-title">${escapeHtml(item.product_name)}</div>
+                <div class="meta">${escapeHtml(item.manufacturer)} · ${escapeHtml(item.classification)} · ${escapeHtml(item.item_seq)}</div>
+              </div>
+              <span class="rank">#${item.rank}</span>
+            </div>
+            <div class="meta">${escapeHtml(item.ingredients || '성분 정보 없음')}</div>
+            <div class="bars">
+              <div class="barline"><span>OCR</span><div class="track"><div class="fill" style="width:${pct(item.ocr_score)}"></div></div><span>${score(item.ocr_score)}</span></div>
+              <div class="barline"><span>Image</span><div class="track"><div class="fill" style="width:${pct(item.image_score)}"></div></div><span>${score(item.image_score)}</span></div>
+              <div class="barline"><span>Hybrid</span><div class="track"><div class="fill" style="width:${pct(item.final_score)}"></div></div><span>${score(item.final_score)}</span></div>
+            </div>
+            <div class="rules">${rules || '<span class="pill">DUR 연결 없음</span>'}</div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderChat() {
+      const log = document.getElementById('chatLog');
+      if (chatHistory.length === 0) {
+        log.textContent = '검색 후 질문할 수 있습니다.';
+        return;
+      }
+      log.innerHTML = chatHistory.map(turn => `
+        <div class="chat-turn">
+          <div class="chat-role">${turn.role === 'user' ? '사용자' : 'EXAONE'}</div>
+          <div>${escapeHtml(turn.content)}</div>
+        </div>
+      `).join('');
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function buildChatContext() {
+      if (!lastResult) return {};
+      return {
+        alpha: lastResult.alpha,
+        mode: lastResult.mode,
+        ocr: {
+          confidence: lastResult.ocr?.confidence,
+          line_count: lastResult.ocr?.line_count,
+          text_excerpt: (lastResult.ocr?.text || '').slice(0, 600)
+        },
+        candidates: (lastResult.candidates || []).slice(0, 5),
+        safety_card: lastResult.safety_card
+      };
+    }
+
+    runButton.addEventListener('click', async () => {
+      if (!imageData) return;
+      runButton.disabled = true;
+      chatButton.disabled = true;
+      setMetric('metricState', '처리 중');
+      document.getElementById('candidateList').className = 'empty';
+      document.getElementById('candidateList').textContent = 'OCR, CLIP, Hybrid 검색을 실행 중입니다.';
+      document.getElementById('safetyCard').className = 'empty';
+      document.getElementById('safetyCard').textContent = 'EXAONE 응답 대기 중입니다.';
+
+      try {
+        const response = await fetch(`${apiBase}/api/retrieve`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            image_data: imageData,
+            filename: imageInput.files[0]?.name || 'upload.jpg',
+            alpha: Number(alpha.value),
+            mode,
+            top_k: Number(document.getElementById('topK').value),
+            max_new_tokens: Number(cardTokens.value)
+          })
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || '요청 실패');
+
+        lastResult = data;
+        chatHistory = [];
+        setMetric('metricAlpha', Number(data.alpha).toFixed(2));
+        setMetric('metricConf', score(data.ocr.confidence));
+        setMetric('metricLines', String(data.ocr.line_count));
+        setMetric('metricTokens', String(data.max_new_tokens || cardTokens.value));
+        setMetric('metricState', '완료');
+        renderCandidates(data.candidates);
+        renderChat();
+        chatButton.disabled = false;
+        document.getElementById('ocrText').textContent = data.ocr.text || '-';
+        document.getElementById('safetyCard').className = 'markdown';
+        document.getElementById('safetyCard').textContent =
+          data.safety_card + (data.llm_error ? `\n\n[LLM fallback] ${data.llm_error}` : '');
+      } catch (error) {
+        setMetric('metricState', '오류');
+        document.getElementById('candidateList').className = 'empty error';
+        document.getElementById('candidateList').textContent = error.message;
+        document.getElementById('safetyCard').className = 'empty';
+        document.getElementById('safetyCard').textContent = '-';
+      } finally {
+        runButton.disabled = false;
+      }
+    });
+
+    chatButton.addEventListener('click', async () => {
+      const input = document.getElementById('chatInput');
+      const message = input.value.trim();
+      if (!message || !lastResult) return;
+      input.value = '';
+      chatButton.disabled = true;
+      chatHistory.push({role: 'user', content: message});
+      chatHistory.push({role: 'assistant', content: '답변 생성 중...'});
+      renderChat();
+
+      try {
+        const response = await fetch(`${apiBase}/api/chat`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            message,
+            context: buildChatContext(),
+            history: chatHistory.slice(0, -1),
+            max_new_tokens: 260
+          })
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || '질문 실패');
+        chatHistory[chatHistory.length - 1] = {
+          role: 'assistant',
+          content: data.answer + (data.llm_error ? `\n\n[LLM fallback] ${data.llm_error}` : '')
+        };
+      } catch (error) {
+        chatHistory[chatHistory.length - 1] = {role: 'assistant', content: `오류: ${error.message}`};
+      } finally {
+        renderChat();
+        chatButton.disabled = false;
+      }
+    });
+
+    document.getElementById('chatInput').addEventListener('keydown', event => {
+      if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+        chatButton.click();
+      }
+    });
+
+    loadStatus();
+  </script>
+</body>
+</html>

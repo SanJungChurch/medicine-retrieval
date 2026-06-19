@@ -1,0 +1,6 @@
+image_id,embedding_model,embedding
+IMG001,mock_package_v1,0.98 0.05 0.02 0.01
+IMG002,mock_package_v1,0.12 0.95 0.04 0.04
+IMG003,mock_package_v1,0.22 0.18 0.92 0.06
+IMG004,mock_package_v1,0.08 0.14 0.18 0.94
+IMG005,mock_package_v1,0.18 0.23 0.28 0.82

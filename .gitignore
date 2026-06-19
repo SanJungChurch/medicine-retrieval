@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Local environments
+.venv/
+venv/
+env/
+
+# Large local outputs
+outputs/
+*.log
+*.err.log
+*.npy
+*.faiss
+*.zip
+
+# Local datasets and model caches
+data/raw/
+data/external/
+medicine_data/
+easyocr_models/
+models/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

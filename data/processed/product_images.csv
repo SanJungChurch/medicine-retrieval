@@ -1,0 +1,6 @@
+image_id,item_code,image_path,split,difficulty,ocr_text,ocr_confidence
+IMG001,ITEM001,data/raw/package/tylenol_001.jpg,test,easy,타이레놀정 500mg 아세트아미노펜,0.96
+IMG002,ITEM002,data/raw/package/gevorn_001.jpg,test,ocr_hard,게보린 삼진 제약,0.72
+IMG003,ITEM003,data/raw/package/brufen_001.jpg,test,easy,부루펜정 200mg 이부프로펜,0.94
+IMG004,ITEM004,data/raw/package/festal_001.jpg,test,image_hard,훼스탈 플러스정 한독,0.88
+IMG005,ITEM005,data/raw/package/aronamin_001.jpg,test,mixed_hard,아로나 골드,0.58

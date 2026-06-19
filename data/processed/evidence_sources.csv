@@ -1,0 +1,4 @@
+source_id,name,publisher,url,version,retrieved_at
+SRC001,e약은요 의약품 정보,공공데이터포털,https://www.data.go.kr/data/15075057/openapi.do,2026-05-27,2026-05-27
+SRC002,DUR 의약품 안전사용 정보,한국의약품안전관리원,https://www.drugsafe.or.kr/iwt/ds/ko/useinfo/EgovDurInfoSerIntegration.do,2026-05-27,2026-05-27
+SRC003,약과 음식 상호작용을 피하는 복약안내서,식품의약품안전처,https://www.mfds.go.kr/brd/m_227/view.do?seq=24670,2026-05-27,2026-05-27

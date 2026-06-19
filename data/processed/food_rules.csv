@@ -1,0 +1,4 @@
+food_rule_id,item_code,ingredient_id,food_name,effect_type,severity,advice_text,source_id
+FOOD001,ITEM002,ING003,카페인,중추신경자극 증가,moderate,카페인 함유 음료와 함께 복용하면 두근거림이나 불면이 증가할 수 있다.,SRC003
+FOOD002,ITEM001,ING001,알코올,간독성 위험 증가,high,음주 전후에는 아세트아미노펜 성분 복용에 주의한다.,SRC003
+FOOD003,ITEM003,ING004,알코올,위장관 이상반응 증가,moderate,음주와 함께 복용하면 위장 장애 위험이 증가할 수 있다.,SRC003

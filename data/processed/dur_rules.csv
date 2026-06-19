@@ -1,0 +1,4 @@
+rule_id,ref_type,ref_id,rule_type,severity,advice_text,source_id
+DUR001,ingredient,ING001,중복주의,moderate,아세트아미노펜 성분 의약품을 중복 복용하지 않도록 확인한다.,SRC002
+DUR002,ingredient,ING004,병용주의,moderate,비스테로이드성 소염진통제 계열 약물의 중복 복용 및 위장관 이상반응에 주의한다.,SRC002
+DUR003,item,ITEM002,성분주의,moderate,복합 진통제는 동일 성분 또는 카페인 함유 의약품과 함께 복용할 때 중복 여부를 확인한다.,SRC002

@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>의약품 포장 이미지 기반 복약 안전 정보 검색 프로젝트 기획서</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --ink: #182230;
+      --muted: #667085;
+      --line: #d8dee8;
+      --brand: #176b87;
+      --brand-2: #0f766e;
+      --soft: #e8f3f6;
+      --warn: #fff4df;
+      --warn-line: #e5a93f;
+      --shadow: 0 18px 48px rgba(16, 24, 40, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: "Pretendard", "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+      line-height: 1.68;
+    }
+
+    a {
+      color: var(--brand);
+      text-decoration: none;
+      font-weight: 650;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 48px 24px 72px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #fdfefe 0%, #e7f3f5 100%);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 44px;
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--brand-2);
+      font-size: 0.88rem;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3 {
+      letter-spacing: 0;
+      line-height: 1.28;
+    }
+
+    h1 {
+      max-width: 860px;
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.35rem);
+    }
+
+    .subtitle {
+      max-width: 820px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 6px 12px;
+      border: 1px solid #b9d6df;
+      border-radius: 999px;
+      color: #134e5e;
+      background: #f1fafb;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    section {
+      margin-top: 30px;
+      padding: 34px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 10px 28px rgba(16, 24, 40, 0.05);
+    }
+
+    h2 {
+      margin: 0 0 18px;
+      font-size: 1.55rem;
+    }
+
+    h3 {
+      margin: 26px 0 10px;
+      font-size: 1.1rem;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    ul,
+    ol {
+      margin: 10px 0 0 22px;
+      padding: 0;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 14px;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: #263445;
+      background: #eef5f7;
+      font-weight: 800;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    code,
+    pre {
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 14px 0 0;
+      padding: 18px;
+      border: 1px solid #c8d4df;
+      border-radius: 8px;
+      color: #172033;
+      background: #f7fafc;
+      line-height: 1.58;
+    }
+
+    .callout {
+      margin-top: 18px;
+      padding: 18px 20px;
+      border-left: 4px solid var(--brand);
+      border-radius: 6px;
+      background: var(--soft);
+    }
+
+    .warning {
+      border-left-color: var(--warn-line);
+      background: var(--warn);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .metric {
+      min-height: 136px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--brand);
+      font-size: 1rem;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    @media (max-width: 820px) {
+      .page {
+        padding: 28px 16px 48px;
+      }
+
+      .hero,
+      section {
+        padding: 24px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Project Proposal</p>
+      <h1>의약품 포장 이미지 기반 복약 안전 정보 검색을 위한 OCR-RAG와 Image-KG Retrieval 비교</h1>
+      <p class="subtitle">
+        약 포장 이미지에서 OCR 텍스트 기반 검색과 이미지-지식그래프 기반 검색의 정확도를 비교하고,
+        두 신호를 결합한 Hybrid GraphRAG 기반 복약 안전 정보 검색 시스템을 제안한다.
+      </p>
+      <div class="meta">
+        <span class="pill">주 실험: 포장 이미지</span>
+        <span class="pill">비교: OCR-RAG vs Image-KG vs Hybrid</span>
+        <span class="pill">출력: 복약 안전 카드</span>
+      </div>
+    </header>
+
+    <section>
+      <h2>1. 프로젝트 개요</h2>
+      <p>
+        본 프로젝트는 사용자가 의약품 포장 이미지를 입력했을 때 해당 약품의 품목명, 성분, DUR 경고,
+        음식 상호작용, 복약 주의사항을 정확히 검색하는 AI 시스템을 구현하는 것을 목표로 한다.
+      </p>
+      <p>
+        기존 의약품 복용 도우미 앱 기획은 사진, 음성, 텍스트 입력을 모두 활용하는 멀티모달 서비스였으나,
+        본 프로젝트에서는 핵심 문제를 약 포장 이미지 기반 의약품 정보 검색으로 좁힌다. 동일한 약 포장 이미지에 대해
+        OCR 기반 검색과 이미지 기반 KG 검색의 성능을 비교하고, 두 방식을 결합한 Hybrid GraphRAG가 더 안정적인
+        검색 성능을 보이는지 검증한다.
+      </p>
+    </section>
+
+    <section>
+      <h2>2. 문제 정의 및 연구 질문</h2>
+      <p>
+        일반 사용자는 약 포장 이미지만 보고 정확한 품목명, 성분, 병용금기, 음식 상호작용 정보를 직접 확인하기 어렵다.
+        포털 검색이나 LLM 단독 질의는 출처가 불분명하거나 환각 가능성이 있으며, OCR 기반 검색은 이미지 흐림,
+        빛 반사, 부분 촬영, 포장 훼손, 글자 인식 오류에 취약하다.
+      </p>
+      <div class="callout">
+        <strong>주 연구 질문</strong>
+        <p>
+          약 포장 이미지 기반 의약품 정보 검색에서 OCR-RAG와 Image-KG Retrieval은 정확도와 안정성 측면에서
+          어떤 차이를 보이는가?
+        </p>
+      </div>
+      <div class="callout">
+        <strong>추가 연구 질문</strong>
+        <p>
+          OCR 결과와 이미지 기반 검색 결과를 결합한 Hybrid GraphRAG는 단일 방식보다 더 높은 약품 식별 정확도와
+          복약 안전 정보 검색 성능을 보일 수 있는가?
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. 프로젝트 목표</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>목표</th>
+            <th>내용</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>OCR-RAG 구현</td>
+            <td>약 포장 이미지에서 OCR 텍스트를 추출하고 이를 기반으로 의약품 정보를 검색한다.</td>
+          </tr>
+          <tr>
+            <td>Image-KG Retrieval 구현</td>
+            <td>약 포장 이미지를 product_image 노드로 KG에 연결하고 이미지 임베딩 유사도와 KG 관계 탐색으로 약품 정보를 검색한다.</td>
+          </tr>
+          <tr>
+            <td>Hybrid GraphRAG 구현 및 평가</td>
+            <td>OCR 점수와 이미지 점수를 결합하여 세 방식의 성능을 정량적으로 비교한다.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>4. 사용 데이터</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>데이터</th>
+            <th>활용 목적</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="https://www.aihub.or.kr/aihubdata/data/view.do?pageIndex=1&amp;currMenu=115&amp;topMenu=100&amp;srchOptnCnd=OPTNCND001&amp;searchKeyword=%EC%95%BD%ED%92%88&amp;srchDetailCnd=DETAILCND001&amp;srchOrder=ORDER001&amp;srchPagePer=20&amp;aihubDataSe=data&amp;dataSetSn=633">AI Hub 의약품 패키징 OCR 데이터</a></td>
+            <td>약 포장 이미지, OCR 텍스트, 이미지 retrieval 평가</td>
+          </tr>
+          <tr>
+            <td><a href="https://www.drugsafe.or.kr/iwt/ds/ko/useinfo/EgovDurInfoSerIntegration.do">KIDS DUR 정보</a></td>
+            <td>병용금기, 연령금기, 임부금기 등 안전 규칙 구축</td>
+          </tr>
+          <tr>
+            <td><a href="https://www.data.go.kr/data/15075057/openapi.do">e약은요 OpenAPI</a></td>
+            <td>품목명, 효능, 용법, 주의사항, 상호작용 설명 검색</td>
+          </tr>
+          <tr>
+            <td><a href="https://www.mfds.go.kr/brd/m_227/view.do?company_cd=&amp;company_nm=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;page=1&amp;seq=24670&amp;srchFr=&amp;srchTo=&amp;srchTp=&amp;srchWord=">식약처 약-음식 상호작용 안내</a></td>
+            <td>자몽, 카페인, 유제품, 비타민K 등 음식 상호작용 rule seed</td>
+          </tr>
+          <tr>
+            <td>AI Hub 경구약제 이미지 데이터</td>
+            <td>본 프로젝트에서는 주 실험이 아닌 확장 실험 후보로 유지</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout warning">
+        <strong>범위 조정</strong>
+        <p>
+          본 프로젝트의 주 실험은 포장 이미지 기반 검색으로 제한한다. 경구약제 이미지는 실제 앱 확장 가능성을 위해
+          보조 데이터로 남기되, 본 실험의 핵심 비교 대상에는 포함하지 않는다.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>5. 제안 방법</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>방법</th>
+            <th>설명</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>OCR-RAG</td>
+            <td>포장 이미지에서 OCR 텍스트를 추출한 뒤 약품명 후보를 기반으로 의약품 정보를 검색한다.</td>
+          </tr>
+          <tr>
+            <td>Package Image-KG Retrieval</td>
+            <td>포장 이미지를 임베딩으로 변환하고 KG의 product_image 노드와 유사도를 비교해 연결된 drug_item을 탐색한다.</td>
+          </tr>
+          <tr>
+            <td>Hybrid GraphRAG</td>
+            <td>OCR 텍스트 유사도와 이미지 유사도를 결합하여 최종 약품 후보를 ranking한다.</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>final_score = alpha * OCR_text_similarity + (1 - alpha) * image_similarity</code></pre>
+      <p>
+        초기 실험에서는 <code>alpha = 0.5</code>의 고정 가중치를 사용하고, 추가 실험에서는 OCR confidence에 따라
+        가중치를 동적으로 조정한다.
+      </p>
+    </section>
+
+    <section>
+      <h2>6. 시스템 아키텍처</h2>
+      <pre><code>약 포장 이미지 입력
+        ↓
+OCR Branch
+- PaddleOCR / EasyOCR
+- OCR text 추출
+- OCR confidence 계산
+- text retrieval
+        ↓
+Image-KG Branch
+- CLIP / SigLIP / ViT image embedding
+- 유사 product_image node 검색
+- 연결된 drug_item 탐색
+        ↓
+Hybrid Candidate Ranking
+- OCR score + image score 결합
+- Top-K drug_item 후보 선정
+        ↓
+Knowledge Graph Retrieval
+- ingredient
+- DUR rule
+- food interaction rule
+- evidence
+- source/version
+        ↓
+LLM Safety Card Generator
+- 품목명
+- 성분명
+- DUR 경고
+- 음식 상호작용
+- 복약 주의사항
+- 근거/출처/버전
+        ↓
+Gradio Demo UI</code></pre>
+    </section>
+
+    <section>
+      <h2>7. Knowledge Graph 설계</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>노드</th>
+            <th>설명</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>product_image</td><td>약 포장 이미지 정보</td></tr>
+          <tr><td>drug_item</td><td>의약품 품목 정보</td></tr>
+          <tr><td>ingredient</td><td>성분 정보</td></tr>
+          <tr><td>dur_rule</td><td>병용금기, 연령금기, 임부금기 등 DUR 규칙</td></tr>
+          <tr><td>food_rule</td><td>음식·음료 상호작용 규칙</td></tr>
+          <tr><td>evidence</td><td>근거 문장</td></tr>
+          <tr><td>source</td><td>출처, URL, 버전, 수집 일자</td></tr>
+        </tbody>
+      </table>
+      <pre><code>(product_image)-[:RECOGNIZED_AS]-&gt;(drug_item)
+(product_image)-[:HAS_OCR_TEXT]-&gt;(ocr_text)
+(drug_item)-[:HAS_INGREDIENT]-&gt;(ingredient)
+(ingredient)-[:HAS_DUR_RULE]-&gt;(dur_rule)
+(drug_item)-[:HAS_FOOD_RULE]-&gt;(food_rule)
+(dur_rule)-[:SUPPORTED_BY]-&gt;(evidence)
+(food_rule)-[:SUPPORTED_BY]-&gt;(evidence)
+(evidence)-[:FROM_SOURCE]-&gt;(source)</code></pre>
+    </section>
+
+    <section>
+      <h2>8. 실험 설계</h2>
+      <p>
+        실험 데이터는 약 포장 이미지 30~100장 규모로 구성한다. 각 이미지에는 정답 품목기준코드, 품목명, 제조사,
+        성분명, DUR 규칙, 음식 상호작용, 근거 출처 라벨을 부여한다.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>난이도</th>
+            <th>조건</th>
+            <th>목적</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Easy</td>
+            <td>제품명이 선명한 정면 포장</td>
+            <td>기본 검색 성능 확인</td>
+          </tr>
+          <tr>
+            <td>OCR-hard</td>
+            <td>흐림, 빛 반사, 기울어짐, 부분 촬영</td>
+            <td>OCR 실패 상황 검증</td>
+          </tr>
+          <tr>
+            <td>Image-hard</td>
+            <td>비슷한 포장 색상, 제조사, 디자인</td>
+            <td>이미지 retrieval 취약점 검증</td>
+          </tr>
+          <tr>
+            <td>Mixed-hard</td>
+            <td>OCR과 이미지 검색 모두 어려운 사례</td>
+            <td>Hybrid 안정성 검증</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>9. 평가 지표</h2>
+      <div class="grid">
+        <div class="metric">
+          <strong>Top-1 Accuracy</strong>
+          <span>1순위 후보가 정답 약품인지 평가한다.</span>
+        </div>
+        <div class="metric">
+          <strong>Recall@K</strong>
+          <span>정답 약품이 Top-K 후보 안에 포함되는지 평가한다.</span>
+        </div>
+        <div class="metric">
+          <strong>MRR</strong>
+          <span>정답 후보가 얼마나 상위에 배치되는지 평가한다.</span>
+        </div>
+        <div class="metric">
+          <strong>Ingredient Match</strong>
+          <span>정답 성분을 정확히 검색했는지 평가한다.</span>
+        </div>
+        <div class="metric">
+          <strong>Rule Match</strong>
+          <span>DUR 및 음식 경고를 정확히 검색했는지 평가한다.</span>
+        </div>
+        <div class="metric">
+          <strong>Evidence Recall@K</strong>
+          <span>정답 근거 출처가 검색 결과에 포함되는지 평가한다.</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>10. 기술 스택 및 구현 범위</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>영역</th>
+            <th>기술</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>개발 환경</td><td>Google Colab, Python</td></tr>
+          <tr><td>OCR</td><td>PaddleOCR 또는 EasyOCR</td></tr>
+          <tr><td>Image Embedding</td><td>CLIP, SigLIP, ViT 계열</td></tr>
+          <tr><td>Text Embedding</td><td>bge-m3, Ko-SBERT, OpenAI Embedding API</td></tr>
+          <tr><td>Vector Search</td><td>FAISS</td></tr>
+          <tr><td>Graph</td><td>NetworkX 우선, 확장 시 Neo4j</td></tr>
+          <tr><td>LLM</td><td>OpenAI API 또는 Gemini API</td></tr>
+          <tr><td>UI</td><td>Gradio</td></tr>
+          <tr><td>Evaluation</td><td>scikit-learn, 자체 metric 구현</td></tr>
+        </tbody>
+      </table>
+      <p>
+        필수 구현 범위는 이미지 업로드, OCR 검색, 이미지 임베딩 검색, KG 구축, Hybrid ranking, 정량 평가,
+        Gradio 기반 결과 비교 화면이다.
+      </p>
+    </section>
+
+    <section>
+      <h2>11. 기대 결과 및 산출물</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>방법</th>
+            <th>예상 강점</th>
+            <th>예상 약점</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>OCR-RAG</td>
+            <td>제품명이 선명하면 높은 정확도</td>
+            <td>OCR 오류에 취약</td>
+          </tr>
+          <tr>
+            <td>Image-KG Retrieval</td>
+            <td>OCR 실패 상황 보완 가능</td>
+            <td>유사 포장 디자인에 취약</td>
+          </tr>
+          <tr>
+            <td>Hybrid GraphRAG</td>
+            <td>텍스트와 이미지 단서 결합으로 안정성 향상</td>
+            <td>ranking 설계와 score calibration 필요</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>최종 산출물</h3>
+      <ul>
+        <li>Colab Notebook: OCR, Image Retrieval, KG Retrieval, Hybrid Ranking, 평가 코드</li>
+        <li>GitHub Repository: 전체 코드, README, 실행 방법</li>
+        <li>Gradio Demo: 약 포장 이미지 업로드 및 검색 결과 비교</li>
+        <li>평가 결과표: OCR-RAG, Image-KG Retrieval, Hybrid GraphRAG 정량 비교</li>
+        <li>발표 자료: 문제 정의, 시스템 구조, 실험 결과, 한계점</li>
+        <li>AI 사용 로그: 과제 요구사항에 맞춘 AI 활용 기록</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>12. 요약</h2>
+      <p>
+        본 프로젝트는 약 포장 이미지 기반 복약 안전 정보 검색에서 OCR-RAG와 Image-KG Retrieval의 성능을 비교하는
+        것을 목표로 한다. OCR-RAG는 이미지에서 추출한 텍스트를 기반으로 의약품 정보를 검색하는 방식이며,
+        Image-KG Retrieval은 약 포장 이미지를 product_image 노드로 지식그래프에 연결하고 이미지 임베딩 유사도 및
+        KG 관계 탐색을 통해 약품, 성분, DUR, 음식 상호작용 정보를 검색하는 방식이다.
+      </p>
+      <p>
+        최종적으로는 OCR 텍스트 유사도와 이미지 유사도를 결합한 Hybrid GraphRAG를 구현하여, 단일 방식 대비 약품
+        식별 정확도와 복약 안전 정보 검색 성능이 개선되는지 정량적으로 평가한다.
+      </p>
+      <p class="footer-note">
+        본 기획서는 연구 및 교육 목적의 프로토타입 설계를 기준으로 하며, 실제 복약 판단은 전문가 상담과 공식 의약품 정보를
+        우선해야 한다.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

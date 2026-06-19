@@ -1,0 +1,12 @@
+networkx>=3.2
+pandas>=2.0
+scikit-learn>=1.4
+faiss-cpu>=1.8
+gradio>=4.0
+numpy>=1.25,<2.0
+pillow>=10.0
+torch>=2.0
+transformers>=4.40
+paddleocr==2.7.3
+paddlepaddle==2.6.2
+easyocr==1.7.2

@@ -1,0 +1,6 @@
+image_id,gold_item_code,gold_name,gold_manufacturer,gold_ingredients,gold_dur_rules,gold_food_rules,gold_sources
+IMG001,ITEM001,타이레놀정500mg,한국얀센,ING001,DUR001,FOOD002,SRC001|SRC002|SRC003
+IMG002,ITEM002,게보린정,삼진제약,ING001|ING002|ING003,DUR001|DUR003,FOOD001,SRC001|SRC002|SRC003
+IMG003,ITEM003,부루펜정200mg,삼일제약,ING004,DUR002,FOOD003,SRC001|SRC002|SRC003
+IMG004,ITEM004,훼스탈플러스정,한독,ING005,,,SRC001
+IMG005,ITEM005,아로나민골드정,일동제약,ING006,,,SRC001

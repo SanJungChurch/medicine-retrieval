@@ -1,0 +1,11 @@
+numpy>=1.25,<2.0
+pandas>=2.0
+scikit-learn>=1.4
+faiss-cpu>=1.8
+pillow>=10.0
+torch>=2.0
+transformers>=4.40
+easyocr==1.7.2
+paddleocr==2.7.3
+paddlepaddle==2.6.2
+networkx>=3.2
