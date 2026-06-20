@@ -73,14 +73,31 @@ The contributions of this work are:
 \end{itemize}
 
 \section{Background and Related Work}
+\subsection{Medication Safety Information and DUR}
+Medication safety search differs from ordinary product search because an identification error can propagate into incorrect contraindication or dosage guidance. Korea's Drug Utilization Review (DUR) infrastructure was designed to reduce inappropriate prescribing and dispensing by checking medication history and safety rules such as drug--drug contraindications, age restrictions, pregnancy warnings, and dose limits \cite{yoon2017dur}. In a consumer-facing assistant, however, these rules must be connected to the medicine that the user actually has in hand. This motivates a retrieval-first design: the system should identify the product from visual evidence, retrieve structured safety rules from authoritative data, and only then generate a patient-readable explanation.
+
+Public medication resources such as AI Hub package-image data, MFDS drug item records, and KIDS/MFDS DUR information provide complementary signals. Package images provide visual and OCR evidence; item records provide product names, manufacturers, ingredients, and standard codes; DUR tables provide safety constraints. Prior application ideas often combine these sources into a medication assistant. This paper narrows the scope to a controlled retrieval study, asking whether package-text OCR, package-image similarity, or their hybrid gives the most reliable entry point into the safety knowledge base.
+
+\subsection{OCR for Drug Package Understanding}
+OCR is a natural baseline for medication package retrieval because Korean drug packages usually print product names, active ingredients, dosage forms, strengths, manufacturers, and regulatory identifiers on the box or pouch. If OCR recovers even part of the product name, character-level matching can be highly discriminative. At the same time, package OCR is challenging: text may be curved, reflective, partially occluded, or mixed with logos and decorative typography.
+
+We considered both PaddleOCR and EasyOCR. PaddleOCR provides a production-oriented multilingual OCR toolkit built around the PP-OCR series \cite{paddleocr}. In our local development environment, however, GPU execution was unstable on long full runs. We therefore used EasyOCR for the main 1,000-query experiment because it provided a simpler Korean/English OCR pipeline and completed the full query set under a low-load chunked runner. EasyOCR combines text detection and recognition modules and supports Korean and English out of the box \cite{easyocr}. The OCR output is not treated as a final answer; it is converted into retrieval evidence and scored against item documents.
+
 \subsection{Retrieval-Augmented Generation}
-Retrieval-Augmented Generation (RAG) combines parametric language models with retrieved external memory to improve factuality and source grounding \cite{lewis2020rag}. For safety-critical domains such as medication information, RAG is attractive because generated responses can be constrained by retrieved evidence rather than by model memory alone.
+Retrieval-Augmented Generation (RAG) combines parametric language models with retrieved external memory to improve factuality and source grounding \cite{lewis2020rag}. For safety-critical domains such as medication information, RAG is attractive because generated responses can be constrained by retrieved evidence rather than by model memory alone. In this project, the ``generation'' part is intentionally downstream of retrieval: the LLM receives ranked candidates, ingredients, and DUR rules, and the prompt instructs it to avoid unsupported food-interaction or clinical claims.
 
 \subsection{GraphRAG and Structured Evidence}
-GraphRAG extends document-centric retrieval by representing entities and relations in graph form. Edge et al. proposed a graph-based RAG approach for query-focused summarization over large corpora \cite{edge2024graphrag}. In the medication domain, graph structure is natural: a product is linked to ingredients, ingredients are linked to contraindication rules, and rules are linked to sources. Our work uses a lightweight table-backed knowledge graph rather than a full graph database, because the experiment focuses on retrieval accuracy and reproducibility.
+GraphRAG extends document-centric retrieval by representing entities and relations in graph form. Edge et al. proposed a graph-based RAG approach for query-focused summarization over large corpora \cite{edge2024graphrag}. Recent multimodal RAG systems further suggest that visual cues and textual evidence can be retrieved together for cross-modal reasoning. In the medication domain, graph structure is especially natural: a product is linked to ingredients, ingredients are linked to contraindication rules, and rules are linked to sources and versions.
+
+Our implementation is deliberately lighter than a full GraphRAG system. Instead of constructing communities or learned graph summaries, we build a table-backed knowledge graph with explicit relations among \texttt{product\_image}, \texttt{drug\_item}, \texttt{ingredient}, \texttt{dur\_rule}, and \texttt{source}. This design keeps the experiment reproducible and allows the comparison to focus on the entry retrieval signal: OCR text, image embedding, or hybrid ranking.
 
 \subsection{Image Retrieval for Product Identification}
-CLIP learns transferable visual representations from image-text supervision \cite{radford2021clip}. It is widely used for cross-modal retrieval and zero-shot visual matching. We use CLIP image embeddings to retrieve visually similar package images. FAISS provides efficient vector similarity search and is used for local nearest-neighbor retrieval \cite{johnson2017billion}.
+CLIP learns transferable visual representations from natural-language supervision over image--text pairs \cite{radford2021clip}. It is widely used for zero-shot image retrieval because its embeddings capture semantic and visual similarity without task-specific training. We use \texttt{openai/clip-vit-base-patch32} as an off-the-shelf image encoder for product-package retrieval. Gallery embeddings are searched with FAISS, a similarity-search library designed for efficient nearest-neighbor retrieval over dense vectors \cite{johnson2017billion}.
+
+This choice is intentionally conservative: the goal is not to maximize image recognition with a heavily fine-tuned model, but to test whether a readily available visual encoder can serve as a robust alternative when OCR is noisy. The results show that general CLIP features alone are not sufficiently discriminative for Korean drug packages at 1,000-product scale, where many boxes share similar colors, typography, and layout patterns.
+
+\subsection{Local LLMs for Safety-Card Generation}
+The prototype uses a locally cached EXAONE model for Korean safety-card generation. EXAONE is a Korean-capable foundation-model family developed by LG AI Research, and the prototype uses the locally available EXAONE-4.0-1.2B checkpoint through the Hugging Face Transformers interface \cite{lgexaone4modelcard}. In this work, EXAONE is not evaluated as a medical expert. It is used only as a natural-language renderer over retrieved evidence. This separation is important: the retrieval layer decides which product and rules are available, while the LLM layer translates those grounded records into a readable safety card.
 
 \section{Problem Definition}
 Given a query package image $I_q$, the system must return a ranked list of drug item candidates and retrieve safety information for the top candidates. Each item is associated with product metadata, ingredients, DUR rules, and evidence/source fields when available.
@@ -94,7 +111,7 @@ We evaluate three methods:
 
 \section{Dataset}
 \subsection{Source Data}
-The package images come from the AI Hub medication package OCR validation data. Drug item and safety metadata are matched against MFDS/KIDS-style public drug information and DUR rule tables. The original AI Hub image archives are not redistributed in the code repository; instead, a local dataset bundle was prepared for reproducibility.
+The package images come from the AI Hub medication package OCR validation data \cite{aihubmedicine}. Drug item and safety metadata are matched against MFDS drug information and KIDS/MFDS-style DUR rule tables \cite{mfdsdrug,kidsdur}. The original AI Hub image archives are not redistributed in the code repository; instead, a local dataset bundle was prepared for reproducibility.
 
 \subsection{Evaluation Subset}
 We sampled products that satisfy the following criteria: at least two package images per product, exact active MFDS item match, no cancellation/withdrawal status, and unique item sequence identifier. One image per product is used as gallery data and another as query data.
@@ -149,6 +166,27 @@ The OCR branch uses EasyOCR to extract Korean and English text from query packag
 
 \subsection{Image-KG Retrieval}
 The image branch encodes gallery and query images using \texttt{openai/clip-vit-base-patch32}. Gallery embeddings are indexed with FAISS. A query image retrieves the most similar gallery image nodes, and each node maps to a drug item. Product-level scores are obtained by taking the maximum image similarity for each item.
+
+\subsection{Model Components}
+Table~\ref{tab:model-components} summarizes the main models and libraries used in the experiment. The system intentionally uses off-the-shelf components so that the baseline can be reproduced without training a new model. This also makes the comparison stricter: if image retrieval is useful, it should improve performance even before domain-specific fine-tuning.
+
+\begin{table*}[t]
+\centering
+\caption{Model and retrieval components used in the prototype.}
+\label{tab:model-components}
+\begin{tabular}{p{0.18\textwidth}p{0.20\textwidth}p{0.24\textwidth}p{0.28\textwidth}}
+\toprule
+Component & Model / Library & Role & Rationale and Notes \\
+\midrule
+OCR & EasyOCR Korean/English & Extract package text from query images & Selected for the main run because it completed the 1,000-query OCR experiment reliably in the local environment. OCR confidence is later used for analysis and possible dynamic weighting. \\
+Image encoder & CLIP ViT-B/32 & Encode package images into dense vectors & Provides a strong zero-shot visual retrieval baseline without task-specific training. Its weakness is low discriminability among visually similar drug packages. \\
+Vector search & FAISS & Search gallery image embeddings & Enables local nearest-neighbor search over 1,000 gallery vectors and can scale to larger collections. We use normalized embeddings so inner product behaves like cosine similarity. \\
+Text retrieval & Character n-gram TF-IDF & Match OCR text to item documents & Chosen because Korean product names often remain recoverable through partial character sequences even when OCR spacing or segmentation is imperfect. \\
+Graph retrieval & CSV-backed KG traversal & Expand item candidates to ingredients and DUR rules & Keeps relations explicit and reproducible while avoiding operational complexity from a separate graph database. \\
+LLM renderer & EXAONE local model & Generate Korean safety cards and chat answers & Used only after retrieval. The prompt requires grounded sections and the server falls back to a structured card when evidence is missing or required sections are omitted. \\
+\bottomrule
+\end{tabular}
+\end{table*}
 
 \subsection{Hybrid GraphRAG}
 OCR and image scores are min-max normalized over the same 1,000 candidate products. The hybrid score is:
