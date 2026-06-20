@@ -1,0 +1,255 @@
+\documentclass[sigconf,screen,nonacm]{acmart}
+
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\pagestyle{plain}
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    Bib\TeX}}}
+
+\title{OCR-RAG versus Image-KG Retrieval for Medication Safety Information Search from Drug Package Images}
+
+\subtitle{A Comparative Study and Hybrid GraphRAG Prototype}
+
+\author{Author Name}
+\affiliation{%
+  \institution{Institution Name}
+  \city{City}
+  \country{Republic of Korea}}
+\email{email@example.com}
+
+\begin{abstract}
+Medication package images contain product names, ingredients, and regulatory clues that can help users identify medicines and retrieve safety information. However, direct search over package images is difficult because package designs are visually similar, optical character recognition (OCR) may fail under blur or partial capture, and large language models (LLMs) can hallucinate safety advice when they are not grounded in verified sources. This paper presents an experimental system for medication safety information retrieval from Korean drug package images. We compare three retrieval strategies: (1) OCR-RAG, which extracts package text and retrieves drug items using character n-gram text similarity; (2) Image-KG Retrieval, which searches CLIP image embeddings linked to product-image nodes in a knowledge graph; and (3) Hybrid GraphRAG, which combines OCR and image similarity scores before expanding the selected drug candidates to ingredients and Drug Utilization Review (DUR) rules. We construct a 1,000-product evaluation set from AI Hub validation package images, matched to Ministry of Food and Drug Safety (MFDS) item records and DUR rules. OCR-RAG achieves the strongest Top-1 accuracy (0.535) and mean reciprocal rank (0.6121), while CLIP-only Image-KG Retrieval performs poorly at 1,000-product scale (Top-1 0.189). Hybrid ranking with $\alpha=0.8$ improves Recall@5 from 0.714 to 0.725, suggesting that image retrieval is most useful as a secondary candidate expansion signal rather than as a standalone identification method. A local EXAONE-based HTML prototype demonstrates grounded safety-card generation and follow-up question answering from retrieved candidates and DUR evidence.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+ <concept>
+  <concept_id>10010147.10010178.10010224.10010225</concept_id>
+  <concept_desc>Computing methodologies~Computer vision problems</concept_desc>
+  <concept_significance>500</concept_significance>
+ </concept>
+ <concept>
+  <concept_id>10002951.10003227.10003241</concept_id>
+  <concept_desc>Information systems~Information retrieval query processing</concept_desc>
+  <concept_significance>500</concept_significance>
+ </concept>
+ <concept>
+  <concept_id>10010405.10010444.10010450</concept_id>
+  <concept_desc>Applied computing~Health informatics</concept_desc>
+  <concept_significance>500</concept_significance>
+ </concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Computing methodologies~Computer vision problems}
+\ccsdesc[500]{Information systems~Information retrieval query processing}
+\ccsdesc[500]{Applied computing~Health informatics}
+
+\keywords{Medication safety, OCR, retrieval-augmented generation, knowledge graph, image retrieval, DUR, CLIP, GraphRAG}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+Medication safety information is often distributed across product labels, regulatory databases, Drug Utilization Review (DUR) rules, and patient-facing medication guides. A user who only has a package image may not know the exact product name, active ingredient, or relevant safety warnings. A conventional web search may return ambiguous or unverified information, while an LLM-only interaction can produce fluent but unsupported advice. This motivates a grounded retrieval pipeline that first identifies the medicine from the package image and then retrieves structured safety information from trusted tables.
+
+This work studies a narrower but practically important question: \emph{which retrieval strategy is more reliable for medication safety search from drug package images?} We compare OCR-based text retrieval, image-embedding retrieval over product-image nodes, and a hybrid score-combination strategy. Our implementation focuses on Korean medication package images and connects retrieved drug candidates to ingredient and DUR-rule tables. The final prototype produces a user-facing safety card with source-aware guardrails.
+
+The contributions of this work are:
+\begin{itemize}[leftmargin=*]
+    \item We formulate medication package understanding as a retrieval comparison problem rather than only as an application demo.
+    \item We build a 1,000-product evaluation set with gallery/query package images, MFDS item matching, and DUR-positive/negative labels.
+    \item We implement and evaluate OCR-RAG, Image-KG Retrieval, and Hybrid GraphRAG under the same candidate set.
+    \item We provide a local HTML prototype that combines EasyOCR, CLIP/FAISS retrieval, structured DUR expansion, and EXAONE safety-card generation.
+\end{itemize}
+
+\section{Background and Related Work}
+\subsection{Retrieval-Augmented Generation}
+Retrieval-Augmented Generation (RAG) combines parametric language models with retrieved external memory to improve factuality and source grounding \cite{lewis2020rag}. For safety-critical domains such as medication information, RAG is attractive because generated responses can be constrained by retrieved evidence rather than by model memory alone.
+
+\subsection{GraphRAG and Structured Evidence}
+GraphRAG extends document-centric retrieval by representing entities and relations in graph form. Edge et al. proposed a graph-based RAG approach for query-focused summarization over large corpora \cite{edge2024graphrag}. In the medication domain, graph structure is natural: a product is linked to ingredients, ingredients are linked to contraindication rules, and rules are linked to sources. Our work uses a lightweight table-backed knowledge graph rather than a full graph database, because the experiment focuses on retrieval accuracy and reproducibility.
+
+\subsection{Image Retrieval for Product Identification}
+CLIP learns transferable visual representations from image-text supervision \cite{radford2021clip}. It is widely used for cross-modal retrieval and zero-shot visual matching. We use CLIP image embeddings to retrieve visually similar package images. FAISS provides efficient vector similarity search and is used for local nearest-neighbor retrieval \cite{johnson2017billion}.
+
+\section{Problem Definition}
+Given a query package image $I_q$, the system must return a ranked list of drug item candidates and retrieve safety information for the top candidates. Each item is associated with product metadata, ingredients, DUR rules, and evidence/source fields when available.
+
+We evaluate three methods:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{OCR-RAG}: extract OCR text from $I_q$ and rank drug items by text similarity.
+    \item \textbf{Image-KG Retrieval}: embed $I_q$ with CLIP and retrieve similar product-image nodes linked to drug items.
+    \item \textbf{Hybrid GraphRAG}: combine OCR and image scores, then expand selected candidates through graph-like relations.
+\end{enumerate}
+
+\section{Dataset}
+\subsection{Source Data}
+The package images come from the AI Hub medication package OCR validation data. Drug item and safety metadata are matched against MFDS/KIDS-style public drug information and DUR rule tables. The original AI Hub image archives are not redistributed in the code repository; instead, a local dataset bundle was prepared for reproducibility.
+
+\subsection{Evaluation Subset}
+We sampled products that satisfy the following criteria: at least two package images per product, exact active MFDS item match, no cancellation/withdrawal status, and unique item sequence identifier. One image per product is used as gallery data and another as query data.
+
+\begin{table}[t]
+\centering
+\caption{Evaluation dataset summary.}
+\label{tab:dataset}
+\begin{tabular}{lr}
+\toprule
+Property & Count \\
+\midrule
+Drug products & 1,000 \\
+DUR-positive products & 700 \\
+DUR-negative products & 300 \\
+Gallery images & 1,000 \\
+Query images & 1,000 \\
+Total package images & 2,000 \\
+DUR rule rows & 2,632 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{System Design}
+\subsection{Knowledge Graph Schema}
+The system represents each package image as a \texttt{product\_image} node linked to a \texttt{drug\_item}. Drug items are connected to ingredients and DUR rules. The current implementation stores these relations in CSV tables and traverses them in Python.
+
+\begin{figure*}[t]
+\centering
+\fbox{%
+\begin{minipage}{0.94\textwidth}
+\centering
+\texttt{package image}
+$\rightarrow$ \texttt{OCR branch}
+$\rightarrow$ \texttt{text candidate scores}
+\hspace{1em}
+\texttt{package image}
+$\rightarrow$ \texttt{CLIP branch}
+$\rightarrow$ \texttt{image candidate scores}
+\newline
+$\rightarrow$ \texttt{hybrid ranking}
+$\rightarrow$ \texttt{drug\_item}
+$\rightarrow$ \texttt{ingredient / DUR rule / evidence}
+$\rightarrow$ \texttt{EXAONE safety card}
+\end{minipage}}
+\caption{Prototype architecture. OCR and CLIP branches produce candidate scores that are combined before structured safety retrieval.}
+\label{fig:architecture}
+\end{figure*}
+
+\subsection{OCR-RAG}
+The OCR branch uses EasyOCR to extract Korean and English text from query package images. Drug-item documents are built from product name, matched MFDS name, manufacturer, classification, standard code, and ingredient names. We rank candidates using character n-gram TF-IDF similarity, which is robust to partial OCR matches and Korean spacing variations.
+
+\subsection{Image-KG Retrieval}
+The image branch encodes gallery and query images using \texttt{openai/clip-vit-base-patch32}. Gallery embeddings are indexed with FAISS. A query image retrieves the most similar gallery image nodes, and each node maps to a drug item. Product-level scores are obtained by taking the maximum image similarity for each item.
+
+\subsection{Hybrid GraphRAG}
+OCR and image scores are min-max normalized over the same 1,000 candidate products. The hybrid score is:
+
+\begin{equation}
+s_{\mathrm{hybrid}}(d) = \alpha s_{\mathrm{ocr}}(d) + (1-\alpha)s_{\mathrm{img}}(d),
+\end{equation}
+
+where $\alpha$ controls the trust placed in OCR. We evaluate fixed $\alpha$ values from 0.1 to 0.9 and a dynamic confidence-based rule:
+
+\begin{equation}
+\alpha_{\mathrm{dyn}} = \min(0.8, \max(0.3, 0.2 + 0.6c_{\mathrm{ocr}})).
+\end{equation}
+
+\section{Prototype}
+The demo prototype is a local HTML application served by a Python HTTP server. It supports image upload, OCR extraction, CLIP/FAISS retrieval, hybrid ranking, DUR-rule expansion, EXAONE safety-card generation, and follow-up question answering. The LLM prompt is guarded so that missing food-interaction data is explicitly marked as unavailable rather than inferred. When the LLM omits required safety-card sections, the system falls back to a structured template.
+
+\section{Experimental Setup}
+\subsection{Metrics}
+We evaluate item retrieval and safety-rule retrieval:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Top-1 Accuracy}: whether the highest-ranked item is correct.
+    \item \textbf{Recall@K}: whether the correct item appears in the top $K$.
+    \item \textbf{MRR}: mean reciprocal rank of the correct item.
+    \item \textbf{Rule Exact Match}: whether the top item has the same DUR rule-type set as the gold item.
+    \item \textbf{Rule Recall@5}: whether the top-5 candidates recover the gold DUR rule types.
+\end{itemize}
+
+\subsection{OCR Execution}
+EasyOCR was executed on 1,000 query images using a low-load chunked GPU runner. It succeeded on 996 images and failed on 4 images. The average OCR confidence was 0.6161, with an average of 15.85 OCR lines per image. Total OCR time was approximately 1,006 seconds.
+
+\section{Results}
+\subsection{Item Retrieval}
+Table~\ref{tab:item-results} shows the main item retrieval results. OCR-RAG substantially outperforms image-only retrieval. Hybrid ranking with $\alpha=0.8$ slightly improves Recall@5 but does not surpass OCR-RAG in Top-1 accuracy.
+
+\begin{table}[t]
+\centering
+\caption{Drug item retrieval performance on 1,000 query images.}
+\label{tab:item-results}
+\begin{tabular}{lrrrr}
+\toprule
+Method & Top-1 & R@3 & R@5 & MRR \\
+\midrule
+Image-KG (CLIP) & 0.189 & 0.212 & 0.222 & 0.2034 \\
+OCR-RAG (EasyOCR) & \textbf{0.535} & 0.674 & 0.714 & 0.6121 \\
+Hybrid $\alpha=0.6$ & 0.505 & 0.662 & 0.719 & 0.5937 \\
+Hybrid $\alpha=0.7$ & 0.522 & 0.669 & 0.722 & 0.6079 \\
+Hybrid $\alpha=0.8$ & 0.527 & 0.673 & \textbf{0.725} & 0.6118 \\
+Hybrid $\alpha=0.9$ & 0.530 & \textbf{0.676} & 0.717 & \textbf{0.6123} \\
+Hybrid dynamic & 0.483 & 0.648 & 0.705 & 0.5768 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{DUR Rule Retrieval}
+Table~\ref{tab:dur-results} reports rule retrieval. OCR-RAG achieves the best top-1 rule exact match. Hybrid $\alpha=0.8$ provides the strongest Rule Recall@5 among the compared methods, although the difference from OCR-RAG is small.
+
+\begin{table}[t]
+\centering
+\caption{DUR rule retrieval performance.}
+\label{tab:dur-results}
+\begin{tabular}{lrrr}
+\toprule
+Method & Item Top-1 & Rule Exact & Rule R@5 \\
+\midrule
+Image-KG (CLIP) & 0.189 & 0.371 & 0.9247 \\
+OCR-RAG (EasyOCR) & \textbf{0.535} & \textbf{0.745} & 0.9713 \\
+Hybrid $\alpha=0.8$ & 0.527 & 0.741 & \textbf{0.9727} \\
+Hybrid $\alpha=0.9$ & 0.530 & 0.742 & 0.9712 \\
+Hybrid dynamic & 0.483 & 0.731 & 0.9714 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Discussion}
+\subsection{Why OCR-RAG Works Better}
+Medication package images frequently contain the exact product name and strength. When OCR succeeds, text retrieval directly exploits product-specific tokens. Character n-gram TF-IDF also tolerates partial OCR errors, spacing differences, and Korean compound names.
+
+\subsection{Why Image-KG Retrieval Struggles}
+CLIP is a general-purpose image representation model. In a 1,000-product package dataset, many products share similar colors, layouts, logos, and dosage-form cues. These visual similarities reduce discriminability when the model is not fine-tuned for medication packages.
+
+\subsection{Role of Hybrid Retrieval}
+Hybrid retrieval did not improve Top-1 accuracy over OCR-RAG, but it improved Recall@5 at $\alpha=0.8$. This suggests that image retrieval can help widen the candidate set when OCR is incomplete, while OCR should remain the dominant signal for final ranking.
+
+\subsection{Safety-Card Generation}
+The demo uses EXAONE as a local LLM for natural-language safety cards. Because medication advice is safety-sensitive, the generation layer uses guardrails: it receives only retrieved candidates and rules, marks missing food-interaction rules as unavailable, and falls back to a structured card if required sections are omitted.
+
+\section{Limitations}
+This study has several limitations. First, the image branch uses an off-the-shelf CLIP model rather than a model fine-tuned on medication packages. Second, food-interaction rules are represented in the proposed schema but are not fully evaluated in the current 1,000-product experiment. Third, the dataset comes from AI Hub validation images, which may differ from real user photos with blur, glare, occlusion, and unusual angles. Fourth, the dynamic $\alpha$ rule relies on OCR confidence but is not calibrated against retrieval correctness.
+
+\section{Future Work}
+Future work should fine-tune image encoders on medication package pairs, add cross-modal reranking over OCR text and visual features, evaluate real user-captured images, and expand food-interaction rule coverage. A calibrated confidence model could decide when to request another photo, when to trust OCR, and when to widen the image-based candidate set.
+
+\section{Conclusion}
+We compared OCR-RAG, Image-KG Retrieval, and Hybrid GraphRAG for medication safety information search from Korean drug package images. OCR-RAG was the strongest standalone method, while CLIP-only Image-KG Retrieval was insufficient at 1,000-product scale. Hybrid retrieval improved Recall@5 when OCR was given high weight, indicating that image retrieval is useful as a secondary candidate expansion signal. The resulting prototype demonstrates a grounded workflow from package image upload to structured DUR retrieval and EXAONE-generated safety cards.
+
+\begin{acks}
+This manuscript describes an educational research prototype. It should not be used as a substitute for professional medical or pharmaceutical advice.
+\end{acks}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}
